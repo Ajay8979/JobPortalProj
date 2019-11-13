@@ -1,0 +1,52 @@
+package com.ojas.example;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+public class Oj {
+
+	public Integer d(String country, int pop) {
+	int count=0;
+		for(int i =0 ;i<10;i++) {
+		
+			
+				JSONParser jsonParser= new JSONParser();
+				try {
+					URL url = new URL("https://jsonmock.hackerrank.com/api/countries/search?page="+i+"&name=" + country);
+					
+					JSONObject jsonObject = (JSONObject) jsonParser.parse(new InputStreamReader(url.openStream()));
+					JSONArray jsonArray = (JSONArray) jsonObject.get("data");
+					
+
+					for(int j = 0 ; j < jsonArray.size();j++) {
+						JSONObject jsonObject2 = (JSONObject) jsonArray.get(j);
+						if(pop<   Integer.parseInt(jsonObject2.get("population").toString())) {
+							count++;
+						}
+						
+						
+					}
+					//System.out.println(count);
+				} catch (IOException | ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			
+		}
+		return count;
+	}
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+		Oj o = new Oj();
+		System.out.println(o.d("in",100000));
+		
+	}
+
+}

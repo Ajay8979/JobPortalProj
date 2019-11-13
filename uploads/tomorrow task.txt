@@ -1,0 +1,602 @@
+public interface Dao<T extends Entity, I>
+{
+    List<T> findAll();
+  
+    T find(I id);
+
+    T save(T entity);
+
+    void delete(I id);
+
+    void delete(T entity);
+    
+    Long calculateMaxId(Entity entity);
+
+
+    
+}
+
+-------------------------------------------------------------------------------
+public class JpaDao<T extends Entity, I> implements Dao<T, I> {
+	private EntityManager entityManager;
+
+	protected Class<T> entityClass;
+
+	public JpaDao(Class<T> entityClass) {
+		this.entityClass = entityClass;
+	}
+
+	public EntityManager getEntityManager() {
+		return this.entityManager;
+	}
+
+	@PersistenceContext
+	public void setEntityManager(final EntityManager entityManager) {
+		this.entityManager = entityManager;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<T> findAll() {
+		final CriteriaBuilder builder = this.getEntityManager().getCriteriaBuilder();
+		final CriteriaQuery<T> criteriaQuery = builder.createQuery(this.entityClass);
+		criteriaQuery.from(this.entityClass);
+
+		TypedQuery<T> typedQuery = this.getEntityManager().createQuery(criteriaQuery);
+		return typedQuery.getResultList();
+	}
+	
+
+	@Override
+	@Transactional(readOnly = true)
+	public T find(I id) {
+		return this.getEntityManager().find(this.entityClass, id);
+	}
+
+	@Override
+	@Transactional
+	public T save(T entity) {
+		return this.getEntityManager().merge(entity);
+	}
+
+	@Override
+	@Transactional
+	public void delete(I id) {
+		if (id == null) {
+			return;
+		}
+
+		T entity = this.find(id);
+		if (entity == null) {
+			return;
+		}
+
+		this.getEntityManager().remove(entity);
+	}
+
+	@Override
+	@Transactional
+	public void delete(T entity) {
+		this.getEntityManager().remove(entity);
+	}
+
+	public Long calculateMaxId(Entity entity) {
+		CriteriaBuilder cb = this.getEntityManager().getCriteriaBuilder();
+		CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+		Root root = cq.from(entity.getClass());
+		cq.select(cb.max(root.get("id")));
+		Query tq = this.getEntityManager().createQuery(cq);
+		Long result = (Long) tq.getSingleResult();
+		return result;
+	}
+
+}
+-------------------------------------------------------------------------------------------
+
+public interface EthnicGroupDao extends Dao<EthnicGroup, Long> {
+
+	List<String> getEthnicByGroup();
+
+}
+-------------------------------------------------------------------------------------------------
+public class JpaEthnicGroupDao extends JpaDao<EthnicGroup, Long> implements EthnicGroupDao {
+
+	public JpaEthnicGroupDao() {
+		super(EthnicGroup.class);
+	}
+
+	@Override
+	public List<String> getEthnicByGroup() {
+
+		Query query = getEntityManager().createNativeQuery("SELECT ethnic_type FROM samplingkit.ethnic_group group by ethnic_type");
+		return query.getResultList();
+	}
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+@Entity
+@Table(name = "ethnic_group")
+public class EthnicGroup implements com.medintu.samplingkit.entity.Entity {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name = "ethnic_id")
+	private Long id;
+
+	@Column(name = "ethnic_name", unique = true)
+	private String ethnicName;
+	@Column(name = "ethnic_type")
+	private String ethnicType;
+
+	public EthnicGroup() {
+		super();
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getEthnicName() {
+		return ethnicName;
+	}
+
+	public void setEthnicName(String ethnicName) {
+		this.ethnicName = ethnicName;
+	}
+
+	public String getEthnicType() {
+		return ethnicType;
+	}
+
+	public void setEthnicType(String ethnicType) {
+		this.ethnicType = ethnicType;
+	}
+
+	@Override
+	public Long getId() {
+		return id;
+	}
+
+}
+--------------------------------------------------------------------------------------------------------------------------
+public class Response {
+
+	private String status;
+	private HttpStatus errorCode;
+	private HttpStatus status_code;
+	private String errorMessage;
+	private String message;
+	private ExceptionType exceptionType;
+	private Object resultData;
+	private int count;
+	private int pages;
+
+	public Response() {
+
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param resultData
+	 */
+
+	public Response(String status) {
+		this.status = status;
+	}
+
+	public Response(String status, String errorMessage) {
+		super();
+		this.status = status;
+		this.errorMessage = errorMessage;
+	}
+
+	public Response(Object resultData) {
+		ObjectMapper mapper = new ObjectMapper();
+
+		mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+		mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+		mapper.setDateFormat(df);
+
+		try {
+
+			this.resultData = mapper.writeValueAsString(resultData);
+			JSONParser parser = new JSONParser();
+			try {
+				this.resultData = parser.parse((String) this.resultData);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public Response(Object resultData, String status) {
+		this.status = status;
+		this.resultData = resultData;
+	}
+
+	public Response(String status, HttpStatus status_code, String message) {
+		super();
+		this.status = status;
+		this.status_code = status_code;
+		this.message = message;
+	}
+
+	public Response(String status, String errorMessage, HttpStatus errorCode) {
+		super();
+		this.status = status;
+		this.errorCode = errorCode;
+		this.errorMessage = errorMessage;
+	}
+
+	public Response(String status, HttpStatus status_code, String message, Object resultData) {
+		super();
+		this.status = status;
+		this.status_code = status_code;
+		this.message = message;
+		this.resultData = resultData;
+	}
+
+	public Response(Object resultData, HttpStatus status_code, String message) {
+		this.resultData = resultData;
+		this.status_code = status_code;
+		this.message = message;
+	}
+
+	public Response(Object resultData, int pages, int count, HttpStatus status_code, String status) {
+		this.resultData = resultData;
+		this.setPages(pages);
+		this.status_code = status_code;
+		this.status = status;
+		this.count = count;
+	}
+
+	public Response(String status, HttpStatus errorCode, String errorMessage, ExceptionType exceptionType) {
+		this.status = status;
+		this.errorCode = errorCode;
+		this.errorMessage = errorMessage;
+		this.exceptionType = exceptionType;
+	}
+
+	public Response(Object resultData, String status, HttpStatus errorCode, String errorMessage,
+			ExceptionType exceptionType) {
+		this.resultData = resultData;
+		this.status = status;
+		this.errorCode = errorCode;
+		this.errorMessage = errorMessage;
+		this.exceptionType = exceptionType;
+	}
+
+	public Response(String status, HttpStatus errorCode) {
+		this.status = status;
+		this.errorCode = errorCode;
+	}
+
+	public Response(Object resultData, HttpStatus errorCode, String errorMessage, ExceptionType exceptionType) {
+		this.resultData = resultData;
+		this.errorCode = errorCode;
+		this.errorMessage = errorMessage;
+		this.exceptionType = exceptionType;
+	}
+
+	/*
+	 * * @return the status
+	 */
+	public String getStatus() {
+		return status;
+	}
+
+	/**
+	 * @param status
+	 *            the status to set
+	 */
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public HttpStatus getErrorCode() {
+		return errorCode;
+	}
+
+	/**
+	 * @param errorCode
+	 *            the errorCode to set
+	 */
+	public void setErrorCode(HttpStatus errorCode) {
+		this.errorCode = errorCode;
+	}
+
+	/**
+	 * @return the errorMessage
+	 */
+	public String getErrorMessage() {
+		return errorMessage;
+	}
+
+	/**
+	 * @param errorMessage
+	 *            the errorMessage to set
+	 */
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
+
+	/**
+	 * @return the String
+	 */
+	public ExceptionType getString() {
+		return exceptionType;
+	}
+
+	/**
+	 * @param String
+	 *            the String to set
+	 */
+	public void setString(ExceptionType String) {
+		this.exceptionType = String;
+	}
+
+	/**
+	 * @return the resultData
+	 */
+	public Object getresultData() {
+		return resultData;
+	}
+
+	/**
+	 * @param resultData
+	 *            the resultData to set
+	 */
+	public void setresultData(Object resultData) {
+		this.resultData = resultData;
+	}
+
+	public int getcount() {
+		return count;
+	}
+
+	public void setcount(int count) {
+		this.count = count;
+	}
+
+	public int getPages() {
+		return pages;
+	}
+
+	public void setPages(int pages) {
+		this.pages = pages;
+	}
+
+	public HttpStatus getStatus_code() {
+		return status_code;
+	}
+
+	public void setStatus_code(HttpStatus status_code) {
+		this.status_code = status_code;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+}
+-------------------------------------------------------------------------------------------------------------
+@Path("/ethnicGroups")
+public class EthnicGroupController {
+
+	@Autowired
+	private EthnicGroupService ethnicgroupservice;
+
+	@Path("/save")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createEthnicGroup(EthnicGroup ethnicgroup) {
+
+		Response response = null;
+		try {
+			EthnicGroup createdEthnicGroup = ethnicgroupservice.createEthnicGroup(ethnicgroup);
+			if (null != createdEthnicGroup) {
+				response = new Response(createdEthnicGroup, HttpStatus.OK, "Ethnic Group added successfully");
+			} else {
+				response = new Response("Failed to add Ethnic Group", HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} catch (Exception e) {
+			response = new Response("Ethnic Type already exists", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return response;
+	}
+
+	@Path("/find/{ethnicGroupId}")
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getEthnicGroupById(@PathParam("ethnicGroupId") Long ethnicGroupId) {
+		Response response = null;
+		EthnicGroup createdEthnicGroup = ethnicgroupservice.getEthnicGroupById(ethnicGroupId);
+		if (null != createdEthnicGroup) {
+			response = new Response(createdEthnicGroup, HttpStatus.OK, "Ethnic Group Found");
+		} else {
+			response = new Response("Ethnic Group not found", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return response;
+	}
+
+	@Path("/getAllEthnics")
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAllEthnicGroupsList() {
+		Response response = null;
+		List<EthnicGroup> ethnicGroups = ethnicgroupservice.getAllEthnicGroups();
+
+		if (!CollectionUtils.isEmpty(ethnicGroups)) {
+			response = new Response(ethnicGroups,0,ethnicGroups.size(), HttpStatus.OK, "Ethnic Groups found");
+		} else {
+			response = new Response("Ethnic Groups not found", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return response;
+	}
+
+	@Path("/getAllEthnicMapper")
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAllEthnicGroupsMapperList() {
+		Response response = null;
+		List<EthnicGroup> ethnicGroups = ethnicgroupservice.getAllEthnicGroups();
+
+		List<EthnicGroupMapper> ethnicGroupMappers = new ArrayList<EthnicGroupMapper>();
+		if (!CollectionUtils.isEmpty(ethnicGroups)) {
+			for (EthnicGroup ethnicGroup : ethnicGroups) {
+				EthnicGroupMapper ethnicGroupMapper = new EthnicGroupMapper();
+				ethnicGroupMapper.setId(ethnicGroup.getId());
+				ethnicGroupMapper.setEthnicName(ethnicGroup.getEthnicName());
+				ethnicGroupMapper.setEthnicType(ethnicGroup.getEthnicType());
+				ethnicGroupMappers.add(ethnicGroupMapper);
+			}
+		}
+
+		if (!CollectionUtils.isEmpty(ethnicGroupMappers)) {
+			response = new Response(ethnicGroupMappers,0,ethnicGroupMappers.size(), HttpStatus.OK, "Ethnic Groups found");
+		} else {
+			response = new Response("Ethnic Groups not found", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return response;
+	}
+
+	@Path("/getAll")
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAllEthnicGroups() {
+		Response response = null;
+		List<EthnicGroupResponse> ethnicGroupResponselist = new ArrayList<EthnicGroupResponse>();
+		List<EthnicGroup> ethnicGroups = ethnicgroupservice.getAllEthnicGroups();
+		List<String> ethnicGroupTypes = ethnicgroupservice.getEthnicByGroup();
+
+		for (String ethnicGroupType : ethnicGroupTypes) {
+			List<EthnicGroup> newlist = new ArrayList<EthnicGroup>();
+			EthnicGroupResponse ethnicGroupResponse = new EthnicGroupResponse();
+
+			for (EthnicGroup ethnicGroup : ethnicGroups) {
+				if (ethnicGroupType.equalsIgnoreCase(ethnicGroup.getEthnicType())) {
+					ethnicGroupResponse.setEthnicGroupName(ethnicGroupType);
+					newlist.add(ethnicGroup);
+				}
+			}
+			ethnicGroupResponse.setEthnicGroups(newlist);
+			ethnicGroupResponselist.add(ethnicGroupResponse);
+		}
+
+		if (!CollectionUtils.isEmpty(ethnicGroupResponselist)) {
+			response = new Response(ethnicGroupResponselist,0,ethnicGroupResponselist.size(), HttpStatus.OK, "Ethnic Groups found");
+		} else {
+			response = new Response("Ethnic Groups not found", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return response;
+	}
+
+	@Path("/delete/{id}")
+	@DELETE
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response deleteEthnicGroupById(Long id) {
+		ethnicgroupservice.deleteEthnicGroupById(id);
+		return new Response("Ethnic Group deleted successfully", HttpStatus.OK);
+	}
+
+	@Path("/update")
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response updateEthnicGroupById(EthnicGroup ethnicgroup) {
+		Response response = null;
+		try {
+			EthnicGroup createdEthnicGroup = ethnicgroupservice.updateEthnicGroupById(ethnicgroup);
+			if (null != createdEthnicGroup) {
+				response = new Response(createdEthnicGroup, HttpStatus.OK, "Ethnic Group updated successfully");
+			} else {
+				response = new Response("Failed to update Ethnic Group", HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} catch (Exception e) {
+			response = new Response("Ethnic Type already exists", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return response;
+
+	}
+}
+=========================================================
+
+public interface EthnicGroupService {
+	
+	
+	public EthnicGroup createEthnicGroup(EthnicGroup eg);
+	
+    public void deleteEthnicGroupById(Long ethnicGroupId);
+    
+	
+	public EthnicGroup updateEthnicGroupById(EthnicGroup ethnicgroup);
+	
+	public EthnicGroup getEthnicGroupById(Long ethnicGroupId);
+	 
+	public List<EthnicGroup> getAllEthnicGroups();
+	
+	
+	public List<String> getEthnicByGroup();
+	
+}
+
+
+==================================================================
+@Transactional
+public class EthnicGroupServiceImpl implements EthnicGroupService {
+
+	@Autowired
+	private EthnicGroupDao ethnicGroupdao;
+
+	@Override
+	public EthnicGroup createEthnicGroup(EthnicGroup ethnicGroup) {
+		return ethnicGroupdao.save(ethnicGroup);
+	}
+
+	@Override
+	public EthnicGroup getEthnicGroupById(Long ethnicGroupId) {
+		return ethnicGroupdao.find(ethnicGroupId);
+	}
+
+	@Override
+	public List<EthnicGroup> getAllEthnicGroups() {
+		return ethnicGroupdao.findAll();
+	}
+
+	@Override
+	public void deleteEthnicGroupById(Long id) {
+		ethnicGroupdao.delete(id);
+	}
+
+	@Override
+	public EthnicGroup updateEthnicGroupById(EthnicGroup ethnicgroup) {
+		return ethnicGroupdao.save(ethnicgroup);
+
+	}
+	
+	public List<String> getEthnicByGroup(){
+		return ethnicGroupdao.getEthnicByGroup();
+	}
+
+
+}
+
+
+
+
+

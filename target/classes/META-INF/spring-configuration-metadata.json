@@ -1,0 +1,17 @@
+{
+  "hints": [],
+  "groups": [
+    {
+      "sourceType": "com.devglan.property.FileStorageProperties",
+      "name": "file",
+      "type": "com.devglan.property.FileStorageProperties"
+    }
+  ],
+  "properties": [
+    {
+      "sourceType": "com.devglan.property.FileStorageProperties",
+      "name": "file.upload-dir",
+      "type": "java.lang.String"
+    }
+  ]
+}
