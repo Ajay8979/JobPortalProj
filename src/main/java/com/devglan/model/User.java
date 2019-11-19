@@ -16,7 +16,7 @@ public class User {
 	private String username;
 	private String password;
 	private String role;
-	private String email;
+	private String[] email;
 	private long mobileno;
 	public int getId() {
 		return id;
@@ -42,11 +42,11 @@ public class User {
 	public void setRole(String role) {
 		this.role = role;
 	}
-	public String getEmail() {
+	public String[] getEmail() {
 		return email;
 	}
-	public void setEmail(String email) {
-		this.email = email;
+	public void setEmail(String[] strings) {
+		this.email = strings;
 	}
 	public long getMobileno() {
 		return mobileno;

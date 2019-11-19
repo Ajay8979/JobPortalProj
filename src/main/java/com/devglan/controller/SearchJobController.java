@@ -39,9 +39,27 @@ public class SearchJobController {
 	@GetMapping("/find/{skill}/{location}/{experience}")
 	public ApiResponse<SearchJob> findBySkilll(@PathVariable(value = "skill") String skill,
 			@PathVariable(value = "location") String location, @PathVariable(value = "experience") String experience) {
-		
+
 		List<SearchJob> findBySkill = jobService.findBySkill(skill, location, experience);
 		return new ApiResponse<>(HttpStatus.OK.value(), "User list fetched successfully.", findBySkill);
+
+	}
+
+	@GetMapping("/find1/{company}/{location}/{experience}")
+	public ApiResponse<SearchJob> findByCompany(@PathVariable(value = "company") String company,
+			@PathVariable(value = "location") String location, @PathVariable(value = "experience") String experience) {
+
+		List<SearchJob> findBySkill1 = jobService.findByCompany(company, location, experience);
+		return new ApiResponse<>(HttpStatus.OK.value(), "User list fetched successfully.", findBySkill1);
+
+	}
+
+	@GetMapping("/find2/{job}/{location}/{experience}")
+	public ApiResponse<SearchJob> findByJob(@PathVariable(value = "job") String job,
+			@PathVariable(value = "location") String location, @PathVariable(value = "experience") String experience) {
+
+		List<SearchJob> findBySkill2 = jobService.findByJob(job, location, experience);
+		return new ApiResponse<>(HttpStatus.OK.value(), "User list fetched successfully.", findBySkill2);
 
 	}
 

@@ -57,4 +57,16 @@ private SearchJobDao searchJobDao;
 		return searchJobDao.findBySkill(skill, location, experience) ;
 	}
 
+	@Override
+	public List<SearchJob> findByCompany(String company, String location, String experience) {
+		// TODO Auto-generated method stub
+		return searchJobDao.findByCompany(company, location, experience);
+	}
+
+	@Override
+	public List<SearchJob> findByJob(String job, String location, String experience) {
+		// TODO Auto-generated method stub
+		return searchJobDao.findByJob(job, location, experience);
+	}
+
 }

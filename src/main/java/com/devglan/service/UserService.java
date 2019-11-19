@@ -16,5 +16,6 @@ public interface UserService {
     User findById(int id);
 
     UserDto update(UserDto userDto);
+    void logout(User user);
     
 }

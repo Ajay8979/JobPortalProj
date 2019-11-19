@@ -77,13 +77,19 @@ public class UserServiceImpl implements UserDetailsService, UserService {
 	public User save(UserDto user) {
 		User newUser = new User();
 		newUser.setUsername(user.getUsername());
-		newUser.setEmail(user.getEmail());
+		newUser.setEmail(user.getEmail());;
 		newUser.setMobileno(user.getMobileno());
 		newUser.setPassword(bcryptEncoder.encode(user.getPassword()));
 		newUser.setRole(user.getRole());
 		newUser.setId(user.getId());
 
 		return userDao.save(newUser);
+	}
+
+	@Override
+	public void logout(User user) {
+		
+		
 	}
 
 	/*
